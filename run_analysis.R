@@ -1,21 +1,41 @@
 
+#working directories from different machines
+#setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+#setwd("C:/Users/zwaldman/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
 
-# setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+library(plyr)
+library(reshape2)
 
 ### read data with labels for activities and features
 activities <- read.table("./UCI HAR Dataset/activity_labels.txt",
-                       col.names = c("Activity_Number", "Activity_Label"))
+                       col.names = c("Activity_Number", "Activity_Label"),
+                       colClasses = c("numeric", "factor"))
 
 features <- read.table("./UCI HAR Dataset/features.txt",
-                              col.names = c("Feature_Number", "Feature_Name"))
+                        col.names = c("Feature_Number", "Feature_Name"),
+                        stringsAsFactors = FALSE)
 
+# create index to be used later to select mean and std features
+# note \\ used to escape open and closed parenthesis
+index <- grep("mean\\(\\)|std\\(\\)", features$Feature_Name, ignore.case = TRUE)
+
+# clean feature names by removing () and converting - to ()
+clean_names <- gsub("\\(\\)", "", features$Feature_Name)
+clean_names <- gsub("-","_", clean_names)
+features$Feature_Name <- clean_names
+        
 ### read subject train and test data (as factor) and combine
 
+#subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt",
+#                            col.names = "Subject", colClasses="factor")
+#subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt",
+#                           col.names = "Subject", colClasses="factor")
 subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt",
-                            col.names = "Subject", colClasses="factor")
+                            col.names = "Subject")
 subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt",
-                           col.names = "Subject", colClasses="factor")
+                           col.names = "Subject")
 subject_combined <- rbind(subject_train, subject_test)
+
 
 # read y data (activity number) for train and test data and combine
 y_train <- read.table("./UCI HAR Dataset/train/y_train.txt",
@@ -33,11 +53,6 @@ X_combined <- rbind(X_train, X_test)
 # use data from features data frame to assign column names to features
 names(X_combined) <- features$Feature_Name
 
-# create index to select mean and std features
-# note \\ used to escape open and closed parenthesis
-index <- grep("mean\\(\\)|std\\(\\)", features$Feature_Name, ignore.case = TRUE)
-# features[index,2]
-
 # subset X data to select columns with mean and std data
 X_combined_mean_std <- X_combined[,index]
 
@@ -52,8 +67,29 @@ tidy_frame1 <- data.frame(subject_combined, y_combined_merged)
 tidy_frame1 <- data.frame(tidy_frame1, X_combined_mean_std)
 
 # create vector of new column names for 2nd tidy data frame
-# Add "Average" to the old column names
+# Add "Average" to the old column names (cols 4 through 69)
+newnames <- vector("character", 69)   # empty character vector
+newnames[1:3] <- colnames(tidy_frame1)[1:3]
+newnames[4:69] <- paste("Average", colnames(tidy_frame1)[4:69])
 
-newnames <- paste("Average", colnames(tidy_frame1))
-newframetemp <- split(tidy_frame1, f=list(tidy_frame1$Subject,
-                                          tidy_frame1$Activity_Label))
+# melt and recast tidy_frame1 to create new frame with data means
+
+dmelt2 <- melt(tidy_frame1, id.vars = c("Subject","Activity_Number",
+                                        "Activity_Label"))
+casted_frame2 <- dcast(dmelt2, Subject + Activity_Number + Activity_Label
+                       ~ variable, mean)
+colnames(casted_frame2) <- newnames # use correct column names
+
+# now use arrange() from plyr to order by Subject and Activity_Number
+# first need to convert Subject and Activity Number 
+tidy_frame2 <- arrange(casted_frame2, Subject, Activity_Number)
+
+# remove Activity_Number column (redundant with Activity_Label)
+tidy_frame2 <- subset(tidy_frame2, select = -Activity_Number)
+
+# output result to comma-delimited file named tidy_dataset.csv
+# if (file.exists("tidy_dataset.txt")) file.remove("tidy_dataset.txt")
+# write.table(tidy_frame2, "tidy_dataset.txt", row.names = FALSE)
+write.csv(tidy_frame2, "tidy_dataset.csv", row.names = FALSE)
+
+
