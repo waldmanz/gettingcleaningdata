@@ -1,6 +1,6 @@
 
 #working directories from different machines
-#setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
 #setwd("C:/Users/zwaldman/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
 
 library(plyr)
@@ -87,9 +87,8 @@ tidy_frame2 <- arrange(casted_frame2, Subject, Activity_Number)
 # remove Activity_Number column (redundant with Activity_Label)
 tidy_frame2 <- subset(tidy_frame2, select = -Activity_Number)
 
-# output result to comma-delimited file named tidy_dataset.csv
-# if (file.exists("tidy_dataset.txt")) file.remove("tidy_dataset.txt")
-# write.table(tidy_frame2, "tidy_dataset.txt", row.names = FALSE)
-write.csv(tidy_frame2, "tidy_dataset.csv", row.names = FALSE)
+# output result to space or comma-delimited file
+write.table(tidy_frame2, "tidy_dataset.txt", row.names = FALSE)
+# write.csv(tidy_frame2, "tidy_dataset.csv", row.names = FALSE)
 
 
