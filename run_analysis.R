@@ -83,7 +83,7 @@ tidy_frame2 <- arrange(casted_frame2, Subject, Activity_Number)
 tidy_frame2 <- subset(tidy_frame2, select = -Activity_Number)
 
 # Output result to space or comma-delimited file
-write.table(tidy_frame2, "tidy_dataset.txt", row.names = FALSE)
+write.table(tidy_frame2, "final_tidy_dataset.txt", row.names = FALSE)
 # write.csv(tidy_frame2, "tidy_dataset.csv", row.names = FALSE)
 
 

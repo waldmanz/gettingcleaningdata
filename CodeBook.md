@@ -117,7 +117,7 @@ Steps Used to Generate Tidy Dataset
 
 14. Remove Activity_Number column (redundant with Activity_Label)
 
-15.  Output result to space-delimited file named tidy_dataset.txt
+15.  Output result to space-delimited file named final_tidy_dataset.txt
 
 
 Reference raw data used for this project:
