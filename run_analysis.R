@@ -1,6 +1,7 @@
+# script for converting raw data to final tidy dataset for course project
 
-#working directories from different machines
-setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+#working directories for different machines
+#setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
 #setwd("C:/Users/zwaldman/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
 
 library(plyr)
@@ -24,12 +25,7 @@ clean_names <- gsub("\\(\\)", "", features$Feature_Name)
 clean_names <- gsub("-","_", clean_names)
 features$Feature_Name <- clean_names
         
-### read subject train and test data (as factor) and combine
-
-#subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt",
-#                            col.names = "Subject", colClasses="factor")
-#subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt",
-#                           col.names = "Subject", colClasses="factor")
+### read subject train and test data and combine
 subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt",
                             col.names = "Subject")
 subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt",
@@ -73,21 +69,20 @@ newnames[1:3] <- colnames(tidy_frame1)[1:3]
 newnames[4:69] <- paste("Average", colnames(tidy_frame1)[4:69])
 
 # melt and recast tidy_frame1 to create new frame with data means
-
 dmelt2 <- melt(tidy_frame1, id.vars = c("Subject","Activity_Number",
                                         "Activity_Label"))
 casted_frame2 <- dcast(dmelt2, Subject + Activity_Number + Activity_Label
                        ~ variable, mean)
 colnames(casted_frame2) <- newnames # use correct column names
 
-# now use arrange() from plyr to order by Subject and Activity_Number
+# Use arrange() from plyr to order by Subject and Activity_Number
 # first need to convert Subject and Activity Number 
 tidy_frame2 <- arrange(casted_frame2, Subject, Activity_Number)
 
-# remove Activity_Number column (redundant with Activity_Label)
+# Remove Activity_Number column (redundant with Activity_Label)
 tidy_frame2 <- subset(tidy_frame2, select = -Activity_Number)
 
-# output result to space or comma-delimited file
+# Output result to space or comma-delimited file
 write.table(tidy_frame2, "tidy_dataset.txt", row.names = FALSE)
 # write.csv(tidy_frame2, "tidy_dataset.csv", row.names = FALSE)
 
