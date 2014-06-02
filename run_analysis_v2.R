@@ -1,0 +1,165 @@
+# script for converting raw data to final tidy dataset for course project
+# corrects critical error in merge statement in original version
+# also organized/restructured for clarity
+
+#working directories for different machines
+setwd("~/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+# setwd("C:/Users/zwaldman/Dropbox/DataScience/DataCleaning/courseproject/gettingcleaningdata")
+
+library(plyr)
+library(reshape2)
+
+# ----------------------------------------------------------------------
+# Step 1 - load the X, y, and subject data from the training and test
+#          and combine the training and test data
+# ----------------------------------------------------------------------
+
+subject_train <- read.table("./UCI HAR Dataset/train/subject_train.txt",
+                            col.names = "Subject", colClasses = 'integer')
+subject_test <- read.table("./UCI HAR Dataset/test/subject_test.txt",
+                           col.names = "Subject", colClasses = 'integer')
+subject_combined <- rbind(subject_train, subject_test)
+
+# Note:  subject_train contains 7352 obs of 1 variable
+#        subject_test contains 2947 obs of 1 variable 
+#        this represents subject number from whom data collected
+#        and is an integer from 1 to 30
+
+
+y_train <- read.table("./UCI HAR Dataset/train/y_train.txt",
+                      col.names = "Activity_Number", colClasses="integer")
+y_test <- read.table("./UCI HAR Dataset/test/y_test.txt",
+                     col.names = "Activity_Number", colClasses="integer")
+y_combined <- rbind(y_train, y_test)
+
+# Note:  y_train contains 7352 obs of 1 variable
+#        y_test contains 2947 obs of 1 variable 
+#        this represents Activity Number 
+#        and is an integer from 1 to 6
+
+
+X_train <- read.table("./UCI HAR Dataset/train/X_train.txt")
+X_test <- read.table("./UCI HAR Dataset/test/X_test.txt")
+X_combined <- rbind(X_train, X_test)
+
+# Note:  X_train contains 7352 obs of 561 variables
+#        X_test contains 2947 obs of 561 variables 
+#        this represents the feature data collected for each observation
+#        and contains numeric values from -1.0 to 1.0
+
+
+# ----------------------------------------------------------------------
+# Step 2 - Load the table linking the 561 feature numbers to feature names,
+#          and also linking 6 activity numbers to activity names
+#          Create vectors used to subset features of interest 
+# ----------------------------------------------------------------------
+
+activities <- read.table("./UCI HAR Dataset/activity_labels.txt",
+                       col.names = c("Activity_Number", "Activity_Label"),
+                       colClasses = c("integer", "factor"))
+
+features <- read.table("./UCI HAR Dataset/features.txt",
+                        col.names = c("Feature_Number", "Feature_Name"),
+                        stringsAsFactors = FALSE)
+
+# create vectors to be used later to select mean and std features
+# note \\ used to escape open and closed parenthesis
+
+featureIndex <- grep("mean\\(\\)|std\\(\\)", features$Feature_Name,
+                     ignore.case = TRUE)  # index numbers to keep
+featureIndexLogic <- grepl("mean\\(\\)|std\\(\\)", features$Feature_Name,
+                      ignore.case = TRUE)  # logical vector of indices to keep
+
+# ----------------------------------------------------------------------
+# Step 3 - Subset the feature dataframe X_combined using 
+#          featureIndex for features with mean() and std()
+#          "Clean"  remaining feature names by removing parens () and
+#          converting hyphens to underscores, and add them to the X dataframe         
+# ----------------------------------------------------------------------
+
+X_combined_subset <- X_combined[, featureIndex]
+
+# clean feature names of interest by removing () and converting - to ()
+clean_feature_names <- gsub("\\(\\)", "", features$Feature_Name[featureIndex])
+clean_feature_names <- gsub("-","_", clean_feature_names)
+names(X_combined_subset) <- clean_feature_names  # add to subsetted X data frame
+        
+# ----------------------------------------------------------------------
+# Step 4 - Add the activity names to the activity numbers (integers)
+#          found in the y_combined data frame         
+# ----------------------------------------------------------------------
+
+#  merge to add activity names (by="Activity_Number"
+#   implicitly because this is the only common column name)
+#   all.x = TRUE gives output of length y_test
+
+### can't just merge, because merge returns data in unspecified order
+
+# one solution is to first add an order column with original order as below
+y_combined$order <- seq(len=nrow(y_combined))
+y_combined_merged <- merge(y_combined, activities, all.x = TRUE)
+
+# now sort back on the order, and remove the order column
+y_combined_merged <- y_combined_merged[order(y_combined_merged$order),]
+row.names(y_combined_merged) <- NULL # eliminate row names generated by merge
+y_combined_merged <- subset(y_combined_merged, select = - order)
+
+# a second approach is to use join from plyr
+# go back to original y_combined
+y_combined <- subset(y_combined, select = - order)
+y_combined_merged2 <- join(y_combined, activities, type='left')
+# identical(y_combined_merged, y_combined_merged2) # returns TRUE
+
+# ----------------------------------------------------------------------
+# Step 5 - Put it together: combine the class variables (y's), features, 
+#          and subject number into a single data frame
+# ----------------------------------------------------------------------
+
+# create data frame with subject, activity number, activity label
+tidy_frame1 <- data.frame(subject_combined, y_combined_merged)
+tidy_frame1 <- data.frame(tidy_frame1, X_combined_subset)
+
+# ----------------------------------------------------------------------
+# Step 6 - Split/Apply/Combine Step to create final_tidy_frame.  
+#          Put it together: combine the class variables (y's), features, 
+#          and subject number into a single data frame.  New data frame
+#          contains averages of all features for each subject/activity
+#          combination
+# ----------------------------------------------------------------------
+
+
+# Prepend "Average" to the prior feature names (cols 4 through 69)
+ 
+newnames <- vector("character", 69)   # empty character vector
+newnames[1:3] <- colnames(tidy_frame1)[1:3]
+newnames[4:69] <- paste("Average", colnames(tidy_frame1)[4:69])
+names(tidy_frame1) <- newnames
+
+# drop Activity_Number from tidy_frame - won't need again
+tidy_frame1 <- subset(tidy_frame1, select= -Activity_Number)
+
+## a few ways of doing this split/apply/combine
+# 1. with aggregate
+
+finaldf1 <- aggregate(tidy_frame1[,3:68],
+                     by = list(Subject = tidy_frame1$Subject,
+                               Activity_Label = tidy_frame1$Activity_Label),
+                     mean)
+
+# 2. with melt/recast (from reshape2 package)
+
+# melt and recast tidy_frame1 to create new frame with data means
+dmelt <- melt(tidy_frame1, id.vars = c("Subject","Activity_Label"))
+finaldf2 <- dcast(dmelt, Subject + Activity_Label ~ variable, mean)
+
+# Use arrange() from plyr to order by Subject and Activity_Number
+final_tidy_frame <- arrange(finaldf1, Subject, Activity_Label)
+
+# ----------------------------------------------------------------------
+# Step 7 - Output results to a file (either space or comma delimited)
+# ----------------------------------------------------------------------
+
+# Output result to space or comma-delimited file
+write.table(final_tidy_frame, "final_tidy_dataset.txt", row.names = FALSE)
+# write.csv(final_tidy_frame, "final_tidy_dataset.csv", row.names = FALSE)
+

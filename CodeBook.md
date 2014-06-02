@@ -58,7 +58,7 @@ A full description of the raw data can be found in the README.txt document via t
 Tidy Dataset
 ----------------------------
 
-The output dataset tidy_dataset.txt, is a space-delimited text file with a header row.  It contains 35 observations of 68 variables.
+The output dataset tidy_dataset.txt, is a space-delimited text file with a header row.  It contains 180 observations of 68 variables.
 
 The tidy dataset contains the following variables
 
@@ -88,36 +88,19 @@ The following name convention is used for variables 3-68 in the tidy dataset.
 
 Steps Used to Generate Tidy Dataset
 -----------------------------
+1. Load the X, y, and subject data from the training and test and combine the training and test data.
 
-1. Read data with labels for activities and features
+2. Load the table linking the 561 feature numbers to feature names, and also linking 6 activity numbers to activity names.  Create vectors used to subset features of interest. 
 
-2. Create index to be used later to select mean and std features
+3 Subset the feature dataframe X_combined using featureIndex for features with mean() and std().  "Clean"  remaining feature names by removing parens () and converting hyphens to underscores, and add them to the X dataframe.         
 
-3. Clean feature names by removing () and converting - to _
-        
-4. Combine subject train and test data. 
+4. Add the activity names to the activity numbers (integers) found in the y_combined data frame.         
 
-5. Combine y data (activity number) for train and test data
+5. Put it together: combine the class variables (y's), features, and subject number into a single data frame
 
-6. Combine X data for train and test data
+6. Split/Apply/Combine Step to create final_tidy_frame.  Put it together: combine the class variables (y's), features, and subject number into a single data frame.  New data frame contains averages of all features for each subject/activity combination.
 
-7. Use data from features.txt to assign column names to features
-
-8. Keep features that contain either mean() or std() in their names.
-
-9. Merge to add activity names to data.  
-
-10. Create interim data frame with subject, activity number, activity label
-
-11. Create vector of new column names for tidy data frame.  Add "Average" to the old column names (cols 4 through 69)
-
-12. Melt and recast to create new dataset with data means
-
-13. Order tidy dataset by Subject and Activity_Number
-
-14. Remove Activity_Number column (redundant with Activity_Label)
-
-15.  Output result to space-delimited file named final_tidy_dataset.txt
+7. Output results to a file (space-delimited) named final_tidy_dataset.txt.
 
 
 Reference raw data used for this project:
